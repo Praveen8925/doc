@@ -10,6 +10,7 @@
     "deploy:sync": "node scripts/deploy-sync.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.104.0",
     "@types/better-sqlite3": "^7.6.13",
     "axios": "^1.6.0",
     "better-sqlite3": "^12.9.0",

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { docDb } from '@/lib/db'
+import { docDb } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const docs = docDb.getAll()
+    const docs = await docDb.getAll()
     return NextResponse.json(
       docs.map(d => ({
         id:           d.id,

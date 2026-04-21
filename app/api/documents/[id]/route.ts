@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile, unlink } from 'fs/promises'
-import { existsSync } from 'fs'
-import { docDb, UPLOADS_DIR } from '@/lib/db'
+import { docDb, docStorage } from '@/lib/supabase'
 
 const mimeTypes: Record<string, string> = {
   pdf:  'application/pdf',
@@ -17,7 +15,6 @@ const mimeTypes: Record<string, string> = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   odt:  'application/vnd.oasis.opendocument.text',
   ods:  'application/vnd.oasis.opendocument.spreadsheet',
-  odp:  'application/vnd.oasis.opendocument.presentation',
   jpg:  'image/jpeg',
   jpeg: 'image/jpeg',
   png:  'image/png',
@@ -26,27 +23,25 @@ const mimeTypes: Record<string, string> = {
   svg:  'image/svg+xml',
 }
 
-// ── GET: serve raw file bytes ─────────────────────────────────────────────────
+// ── GET: stream file from Supabase Storage ───────────────────────────────────
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const matched = docDb.getById(params.id)
-    if (!matched) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const doc = await docDb.getById(params.id)
+    if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const filepath = `${UPLOADS_DIR}/${matched.storedName}`
-    if (!existsSync(filepath)) return NextResponse.json({ error: 'File missing on disk' }, { status: 404 })
+    const ext      = doc.ext.toLowerCase()
+    const mimeType = mimeTypes[ext] || doc.mimeType || 'application/octet-stream'
 
-    const ext      = matched.ext.toLowerCase()
-    const mimeType = mimeTypes[ext] || matched.mimeType || 'application/octet-stream'
-    const buffer   = await readFile(filepath)
+    const buffer = await docStorage.download(doc.storedName)
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type':        mimeType,
-        'Content-Disposition': `inline; filename="${matched.originalName}"`,
+        'Content-Disposition': `inline; filename="${doc.originalName}"`,
         'Cache-Control':       'private, max-age=300',
       },
     })
@@ -56,23 +51,21 @@ export async function GET(
   }
 }
 
-// ── DELETE: remove file + DB record ──────────────────────────────────────────
+// ── DELETE: remove from Storage + DB ────────────────────────────────────────
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const matched = docDb.getById(params.id)
-    if (!matched) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const doc = await docDb.getById(params.id)
+    if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const filepath = `${UPLOADS_DIR}/${matched.storedName}`
-    if (existsSync(filepath)) await unlink(filepath)
-
-    docDb.delete(params.id)
+    await docStorage.remove(doc.storedName)
+    await docDb.delete(params.id)
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('DELETE document error:', err)
+    console.error('DELETE error:', err)
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
   }
 }

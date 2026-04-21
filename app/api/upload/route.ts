@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { existsSync } from 'fs'
 import crypto from 'crypto'
-import { docDb, UPLOADS_DIR, type DocRow } from '@/lib/db'
-
-async function ensureUploadDir() {
-  if (!existsSync(UPLOADS_DIR)) await mkdir(UPLOADS_DIR, { recursive: true })
-}
+import { docDb, docStorage, type DocRow } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureUploadDir()
-
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
 
@@ -19,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 })
     }
 
-    const MAX_SIZE = 50 * 1024 * 1024 // 50 MB per file
+    const MAX_SIZE = 50 * 1024 * 1024 // 50 MB
     const created: DocRow[] = []
 
     for (const file of files) {
@@ -30,27 +22,30 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const fileId    = crypto.randomBytes(8).toString('hex')
-      const parts     = file.name.split('.')
-      const ext       = (parts.length > 1 ? parts.pop()! : 'bin').toLowerCase()
+      const fileId     = crypto.randomBytes(8).toString('hex')
+      const parts      = file.name.split('.')
+      const ext        = (parts.length > 1 ? parts.pop()! : 'bin').toLowerCase()
       const storedName = `${fileId}.${ext}`
-      const filepath   = `${UPLOADS_DIR}/${storedName}`
+      const mimeType   = file.type || 'application/octet-stream'
 
-      const bytes = await file.arrayBuffer()
-      await writeFile(filepath, Buffer.from(bytes))
+      const bytes  = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+
+      // Upload to Supabase Storage
+      await docStorage.upload(storedName, buffer, mimeType)
 
       const doc: DocRow = {
         id:           fileId,
-        storedName,
         originalName: file.name,
+        storedName,
         uploadedAt:   new Date().toISOString(),
         size:         file.size,
-        mimeType:     file.type || 'application/octet-stream',
+        mimeType,
         ext,
       }
 
-      // Persist to SQLite
-      docDb.insert(doc)
+      // Save metadata to Supabase DB
+      await docDb.insert(doc)
       created.push(doc)
     }
 
