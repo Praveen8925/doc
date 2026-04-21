@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { existsSync } from 'fs'
 import crypto from 'crypto'
-import { docDb, type DocRow } from '@/lib/db'
-
-const uploadDir = join(process.cwd(), 'uploads')
+import { docDb, UPLOADS_DIR, type DocRow } from '@/lib/db'
 
 async function ensureUploadDir() {
-  if (!existsSync(uploadDir)) await mkdir(uploadDir, { recursive: true })
+  if (!existsSync(UPLOADS_DIR)) await mkdir(UPLOADS_DIR, { recursive: true })
 }
 
 export async function POST(request: NextRequest) {
@@ -37,7 +34,7 @@ export async function POST(request: NextRequest) {
       const parts     = file.name.split('.')
       const ext       = (parts.length > 1 ? parts.pop()! : 'bin').toLowerCase()
       const storedName = `${fileId}.${ext}`
-      const filepath   = join(uploadDir, storedName)
+      const filepath   = `${UPLOADS_DIR}/${storedName}`
 
       const bytes = await file.arrayBuffer()
       await writeFile(filepath, Buffer.from(bytes))

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, unlink } from 'fs/promises'
-import { join } from 'path'
 import { existsSync } from 'fs'
-import { docDb } from '@/lib/db'
-
-const uploadDir = join(process.cwd(), 'uploads')
+import { docDb, UPLOADS_DIR } from '@/lib/db'
 
 const mimeTypes: Record<string, string> = {
   pdf:  'application/pdf',
@@ -38,7 +35,7 @@ export async function GET(
     const matched = docDb.getById(params.id)
     if (!matched) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const filepath = join(uploadDir, matched.storedName)
+    const filepath = `${UPLOADS_DIR}/${matched.storedName}`
     if (!existsSync(filepath)) return NextResponse.json({ error: 'File missing on disk' }, { status: 404 })
 
     const ext      = matched.ext.toLowerCase()
@@ -68,7 +65,7 @@ export async function DELETE(
     const matched = docDb.getById(params.id)
     if (!matched) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const filepath = join(uploadDir, matched.storedName)
+    const filepath = `${UPLOADS_DIR}/${matched.storedName}`
     if (existsSync(filepath)) await unlink(filepath)
 
     docDb.delete(params.id)

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { docDb } from '@/lib/db'
+import { docDb, UPLOADS_DIR } from '@/lib/db'
 
-const uploadDir = join(process.cwd(), 'uploads')
+const uploadDir = UPLOADS_DIR
 
 export async function GET(
   _req: NextRequest,

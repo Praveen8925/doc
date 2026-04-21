@@ -11,9 +11,16 @@ import Database from 'better-sqlite3'
 import { join } from 'path'
 import { mkdirSync, existsSync, readFileSync } from 'fs'
 
-// ── DB file location ────────────────────────────────────────────────────────
-const DATA_DIR = join(process.cwd(), 'data')
-const DB_PATH  = join(DATA_DIR, 'docflow.db')
+// ── Storage location ─────────────────────────────────────────────────────────
+// On Render.com set env var:  STORAGE_DIR=/data  (the persistent disk mount)
+// Locally defaults to <project>/data  (works with no env var set)
+const STORAGE_DIR  = process.env.STORAGE_DIR || join(process.cwd(), 'data')
+const UPLOADS_DIR  = process.env.UPLOADS_DIR  || join(process.cwd(), 'uploads')
+const DATA_DIR     = STORAGE_DIR
+const DB_PATH      = join(STORAGE_DIR, 'docflow.db')
+
+// Export so API routes can import the same resolved paths
+export { UPLOADS_DIR }
 
 // ── Ensure data/ dir exists ─────────────────────────────────────────────────
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
@@ -39,7 +46,7 @@ db.exec(`
 `)
 
 // ── Migrate legacy metadata.json → SQLite (runs once) ───────────────────────
-const LEGACY_PATH = join(process.cwd(), 'uploads', 'metadata.json')
+const LEGACY_PATH = join(UPLOADS_DIR, 'metadata.json')
 const MIGRATED_FLAG = join(DATA_DIR, '.migrated')
 
 if (existsSync(LEGACY_PATH) && !existsSync(MIGRATED_FLAG)) {
