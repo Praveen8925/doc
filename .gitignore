@@ -1,0 +1,41 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env.local
+.env.*.local
+
+# vercel
+.vercel
+
+# ── Uploaded files & local database ─────────────────────────────────────────
+# IMPORTANT: Do NOT ignore /uploads or /data.
+# These directories hold user files and the SQLite DB.
+# They must be preserved on the server across deployments.
+#
+# If you use git to deploy, commit these directories.
+# If you use rsync/scp, always sync them to the server.
+#
+# Only ignore metadata.json (superseded by SQLite):
+/uploads/metadata.json
