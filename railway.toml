@@ -1,0 +1,3 @@
+[DocFlow]
+startCommand = "node scripts/deploy-sync.js && npm run start"
+buildCommand = "npm ci && npm run build"
